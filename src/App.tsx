@@ -3,7 +3,7 @@ import "./App.css";
 import { MovieCard } from "./components/movie-card";
 import useGetTopRatedMovies from "./hooks/useGetTopRatedMovie";
 import { IMovie } from "./utils/type";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type Data = {
     pages: {
@@ -17,15 +17,48 @@ type Data = {
 function App() {
     const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
         useGetTopRatedMovies();
-    console.log(data);
+    const observerElem = useRef(null);
 
-    const { ref, inView } = useInView();
+    console.log(data);
+    // const { ref, inView } = useInView();
+
+    // useEffect(() => {
+    //     if (inView && hasNextPage && !isFetchingNextPage) {
+    //         fetchNextPage();
+    //     }
+    // }, [inView]);
+
+    const handleObserver = useCallback(
+        (entries: any) => {
+            const [target] = entries;
+            if (target.isIntersecting && hasNextPage) {
+                fetchNextPage();
+            }
+        },
+        [fetchNextPage, hasNextPage]
+    );
 
     useEffect(() => {
-        if (inView && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
+        const element = observerElem.current;
+
+        let options = {
+            root: null,
+            rootMargin: "0px",
+            threshold: 1,
+        };
+        const observer = new IntersectionObserver(handleObserver, options);
+        if (element) {
+            observer.observe(element);
+            console.log("mount");
         }
-    }, [inView]);
+        return () => {
+            if (element) {
+                observer.unobserve(element);
+                console.log("unmount");
+            }
+        };
+    }, [fetchNextPage, hasNextPage, handleObserver]);
+
     return (
         <>
             <h2>무한 스크롤 구현 연습 with react-query</h2>
@@ -34,7 +67,9 @@ function App() {
                     page.results.map((movie: IMovie) => <MovieCard movie={movie} />)
                 )}
             </div>
-            <h2 ref={ref}>Load More!</h2>
+            <div className="loader" ref={observerElem}>
+                {isFetchingNextPage && hasNextPage ? "Loading..." : "No search left"}
+            </div>
         </>
     );
 }

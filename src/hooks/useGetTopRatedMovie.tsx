@@ -1,4 +1,16 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { QueryCache, useInfiniteQuery } from "@tanstack/react-query";
+
+const queryCache = new QueryCache({
+    onError: (error) => {
+        console.log(error);
+    },
+    onSuccess: (data) => {
+        console.log(data);
+    },
+    onSettled: (data, error) => {
+        console.log(data, error);
+    },
+});
 
 const fetchTopMovies = async (page: number) => {
     const res = await fetch(
